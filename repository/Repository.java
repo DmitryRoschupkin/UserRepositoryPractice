@@ -1,7 +1,8 @@
+package repository; 
 import java.util.HashMap;
 import java.util.Map;
 
-public class Repository<T, ID> implements UserRepository<T, ID>{
+public class Repository<ID, T> implements UserRepository<ID, T>{
     public Map<ID, T> repo = new HashMap<>();
 
     @Override

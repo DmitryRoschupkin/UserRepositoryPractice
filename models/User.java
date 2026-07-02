@@ -1,10 +1,12 @@
+package models;
+import annotations.*;
 public class User {
     @NotEmpty(message = "Username cannot be empty!")
     private String name;
 
     private int age;
 
-    User(String name, int age){
+    public User(String name, int age){
         this.name = name;
         this.age = age;
     }
