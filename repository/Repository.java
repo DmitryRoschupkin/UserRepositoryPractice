@@ -1,7 +1,10 @@
 package repository; 
+
 import java.util.HashMap;
 import java.util.Map;
+import annotations.Component;
 
+@Component
 public class Repository<ID, T> implements UserRepository<ID, T>{
     public Map<ID, T> repo = new HashMap<>();
 

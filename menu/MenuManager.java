@@ -2,8 +2,11 @@ package menu;
 
 import java.util.Scanner;
 import java.util.UUID;
+
+import contexts.ApplicationContext;
 import models.*;
 import repository.*;
+import services.UserService;
 import validators.Validator;
 
 public class MenuManager implements Menu{
@@ -22,24 +25,27 @@ public class MenuManager implements Menu{
         String name;
         int age;
 
-        System.out.println("Enter name: ");
-        System.out.print(">>> ");
-        name = s.nextLine();
-        System.out.println();
-        System.out.println("Enter the age: ");
-        System.out.print(">>> ");
-        age = s.nextInt();
-        s.nextLine();
-
         try{
-            User user = new User(name, age);
-            Validator.validate(user);        
-            UUID id = UUID.randomUUID();
-            UserRepository<UUID, User> repo = new Repository<>();
+            ApplicationContext context = new ApplicationContext(Repository.class, UserService.class);
+            UserService userService = context.getComponent(UserService.class);
 
-            repo.save(id, user);
+            System.out.println("Enter name: ");
+            System.out.print(">>> ");
+            name = s.nextLine();
+            System.out.println();
+            System.out.println("Enter the age: ");
+            System.out.print(">>> ");
+            age = s.nextInt();
+            s.nextLine();
+            
+            User user = new User(name, age);
+            Validator.validate(user);
+            UUID id = UUID.randomUUID();
+
+            userService.registerUser(id, user);
         }catch(Exception e){
-            System.out.println("Validation error: "+e.getMessage());
+            System.out.println("Something went wrong");
+            e.printStackTrace();
         }
     }
 
