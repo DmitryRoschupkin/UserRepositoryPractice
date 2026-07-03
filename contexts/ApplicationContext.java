@@ -1,5 +1,6 @@
 package contexts;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,7 +14,15 @@ public class ApplicationContext {
     public ApplicationContext(Class<?> ... classes) throws Exception{
         for(Class<?> clazz:classes){
             if(clazz.isAnnotationPresent(Component.class)){
-                Object instance = clazz.getDeclaredConstructor().newInstance();
+                Constructor<?> constructor = findInjectConstructor(clazz);
+                Class<?>[] parameterTypes = constructor.getParameterTypes();
+                Object[] dependencies = new Object[parameterTypes.length];
+
+                for(int i = 0; i<parameterTypes.length; i++){
+                    dependencies[i] = findDependency(parameterTypes[i]);
+                }
+
+                Object instance = constructor.newInstance(dependencies);
                 instances.put(clazz, instance);
             }
         }
@@ -33,6 +42,13 @@ public class ApplicationContext {
                 }
             }
         }
+    }
+
+    private static Constructor<?> findInjectConstructor(Class<?> clazz){
+        return java.util.Arrays.stream(clazz.getDeclaredConstructors())
+                                .filter(c -> c.isAnnotationPresent(Inject.class))
+                                .findFirst()
+                                .orElseGet(() -> clazz.getDeclaredConstructors()[0]);
     }
 
     @SuppressWarnings("unchecked")
