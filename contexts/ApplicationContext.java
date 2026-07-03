@@ -3,20 +3,39 @@ package contexts;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import annotations.Component;
+import annotations.ComponentScan;
 import annotations.Configuration;
 import annotations.Inject;
+import annotations.PostConstruct;
 import annotations.Bean;
 
 public class ApplicationContext {
     private final Map<Class<?>, Object> instances = new HashMap<>();
 
-    public ApplicationContext(Class<?> ... classes) throws Exception{
-        for(Class<?> clazz:classes){
+    public ApplicationContext(Class<?> mainClass) throws Exception{
+        List<Class<?>> classesToProcess = new ArrayList<>();
+
+        classesToProcess.addAll(PackageScanner.scan("repository"));
+        classesToProcess.addAll(PackageScanner.scan("services"));
+        classesToProcess.addAll(PackageScanner.scan("menu"));
+        classesToProcess.addAll(PackageScanner.scan("validators"));
+        classesToProcess.addAll(PackageScanner.scan("models"));
+
+        if(mainClass.isAnnotationPresent(ComponentScan.class)){
+            ComponentScan componentScan = mainClass.getAnnotation(ComponentScan.class);
+            String packageToScan = componentScan.value();
+
+            classesToProcess.addAll(PackageScanner.scan(packageToScan));
+        }
+
+        for(Class<?> clazz:classesToProcess){
             if(clazz.isAnnotationPresent(Component.class)){
                 Constructor<?> constructor = findInjectConstructor(clazz);
                 Class<?>[] parameterTypes = constructor.getParameterTypes();
@@ -28,6 +47,8 @@ public class ApplicationContext {
 
                 Object instance = constructor.newInstance(dependencies);
                 instances.put(clazz, instance);
+
+                invokePostConstruct(instance);
             }
             
             if(clazz.isAnnotationPresent(Configuration.class)){
@@ -39,8 +60,9 @@ public class ApplicationContext {
                         instances.put(method.getReturnType(), beanInstance);
                     }
                 }
-            }
 
+                invokePostConstruct(configInstance);
+            }
         }
 
         for(Object instance:instances.values()){
@@ -56,6 +78,17 @@ public class ApplicationContext {
                         throw new RuntimeException("Dependency is not found");
                     }
                 }
+            }
+        }
+    }
+
+    private static void invokePostConstruct(Object instance) throws Exception{
+        for(Method method:instance.getClass().getDeclaredMethods()){
+            if(method.isAnnotationPresent(PostConstruct.class)){
+                method.setAccessible(true);
+                System.out.println("Log of DI container: calling @PostConstruct for "+method.getName()+
+                        " method in "+instance.getClass().getSimpleName());
+                method.invoke(instance);
             }
         }
     }
