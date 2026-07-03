@@ -2,11 +2,15 @@ package contexts;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 import annotations.Component;
+import annotations.Configuration;
 import annotations.Inject;
+import annotations.Bean;
 
 public class ApplicationContext {
     private final Map<Class<?>, Object> instances = new HashMap<>();
@@ -25,6 +29,18 @@ public class ApplicationContext {
                 Object instance = constructor.newInstance(dependencies);
                 instances.put(clazz, instance);
             }
+            
+            if(clazz.isAnnotationPresent(Configuration.class)){
+                Object configInstance = clazz.getDeclaredConstructor().newInstance();
+
+                for(Method method : clazz.getDeclaredMethods()){
+                    if(method.isAnnotationPresent(Bean.class)){
+                        Object beanInstance = method.invoke(configInstance);
+                        instances.put(method.getReturnType(), beanInstance);
+                    }
+                }
+            }
+
         }
 
         for(Object instance:instances.values()){
@@ -45,7 +61,7 @@ public class ApplicationContext {
     }
 
     private static Constructor<?> findInjectConstructor(Class<?> clazz){
-        return java.util.Arrays.stream(clazz.getDeclaredConstructors())
+        return Arrays.stream(clazz.getDeclaredConstructors())
                                 .filter(c -> c.isAnnotationPresent(Inject.class))
                                 .findFirst()
                                 .orElseGet(() -> clazz.getDeclaredConstructors()[0]);
